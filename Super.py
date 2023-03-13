@@ -11,7 +11,7 @@ from chatterbot import ChatBot  # gives access to the Chatterbot module
 from chatterbot.trainers import ChatterBotCorpusTrainer  # gives access to the chatterbot trainer dataset
 from random import *
 from countries_info import countries
-
+from items import items
 
 
 
