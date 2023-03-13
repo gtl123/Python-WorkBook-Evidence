@@ -14,10 +14,6 @@ from countries_info import countries
 from items import items
 
 
-
-
-
-
 class UtilsGaurav:  # creates class Utils_Gaurav
     def __init__(self, ai, scratch):  # tells the program what to do when the Utils_Gaurav class has been initialised
         if ai == True:
