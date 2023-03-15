@@ -125,6 +125,33 @@ class UtilsGaurav:  # creates class Utils_Gaurav
                 return OUT
             else:
                 return result
+        elif types == "Custom":
+            count = 1
+            answers = []
+            result = 0
+            while count != int(len(data)):
+                answers.append(input(data[str(count)]))
+                result = func(answers)
+                count += 1
+            OUT = []
+            if data["type"] == "str":
+                for obj in answers:
+                    OUT.append(str(obj))
+                result = str(result)
+            elif data["type"] == "int":
+                for obj in answers:
+                    OUT.append(int(obj))
+                result = int(result)
+            elif data["type"] == "float":
+                for obj in answers:
+                    OUT.append(float(obj))
+                result = float(result)
+            if func == self.NONE:
+                return OUT
+            else:
+                return result
+
+
 
     def multiply_list(self, answers):
         result = 1
