@@ -10,11 +10,14 @@ import math
 app = Ursina()
 
 Entity.default_shader = lit_with_shadows_shader
-#aircraft = Entity(model="Aircraft.blend", colider="mesh", y=1, scale=0.25)
-#propeller = Entity(model="propeller.blend", parent=aircraft, y=9.5)
+
+# aircraft = Entity(model="Aircraft.blend", colider="mesh", y=1, scale=0.25)
+# propeller = Entity(model="propeller.blend", parent=aircraft, y=9.5)
+
+
 ground = Entity(model='plane', collider='box', texture='grass', scale=100)
 player = FirstPersonController(model=Capsule(), color=color.orange, speed=8, collider="mesh")
-rpm = 2000
+
 _fire_snd = synth.sine_wave_note(frequency=40, duration=1)
 audio_tools.normalize_volume(_fire_snd)
 audio_tools.exponential_volume_dropoff(_fire_snd, duration=0.06, base=5)
@@ -24,12 +27,16 @@ front_wheel1 = Entity(model="wheel.blend", parent=car_body, x=-15, y=0, z=16, co
 front_wheel2 = Entity(model="wheel.blend", parent=car_body, x=-15, y=0, z=-16, rotation_x=180, collider="mesh", texture="brick")
 rear_wheel2 = Entity(model="wheel.blend", parent=car_body, x=32, y=0, z=16, collider="mesh", texture="brick")
 rear_wheel1 = Entity(model="wheel.blend", parent=car_body, x=32, y=0, z=-16, rotation_x=180, collider="mesh", texture="brick")
-driver_seat = Entity(model="seat.blend", parent=car_body, x=-3, y=4, z=0, collider="mesh", texture="brick",color =color.gold)
-passenger_seat = Entity(model="seat.blend", parent=car_body, x=-3, y=4, z=-10, collider="mesh", texture="brick",color =color.gold)
+driver_seat = Entity(model="seat.blend", parent=car_body, x=-3, y=4, z=0, collider="mesh", texture="brick", color=color.gold)
+passenger_seat = Entity(model="seat.blend", parent=car_body, x=-3, y=4, z=-10, collider="mesh", texture="brick", color=color.gold)
+
 player_state = "scene"
-wheel =  Entity(model="wheel.blend",z = 30, collider="mesh", texture="brick")
+throttle_pedal = False
+wheel = Entity(model="wheel.blend", z=30, collider="mesh", texture="brick")
+
 
 # Engine specs
+
 def Rotax_912_iS():
     return Engine(
         idle_rpm=2000,
@@ -51,70 +58,57 @@ class Capsule(Mesh):
         super().__init__(vertices=vertices, triangles=sphere_mesh.triangles, uvs=sphere_mesh.uvs,
                          normals=sphere_mesh.normals, colors=sphere_mesh.colors, **kwargs)
 
-def Move(obj,amount):
+
+def Move(obj, rpm, mass, max_rpm):
     π = math.pi
-    max_rpm = 10000
+    max_rpm = max_rpm
     environment_conditions = 30
-    mass = 1000
-    rpm = 0
+    mass = mass
+    rpm = rpm
     diameter = 10
     dist = 1 * (π / 180) * (diameter / 2)
-    friction = (mass/1000)+(environment_conditions/100) + ((rpm/max_rpm)*-1)
-    total_dist = 0
-    while total_dist != amount:
-        obj.rotation_z += 1
-        if friction > 0.5:
-            obj.x += dist
-
-
-
+    friction = (mass / 1000) + (environment_conditions / 100) + ((rpm / max_rpm) * -1)
+    obj.rotation_z += 1
+    if friction > 0.5:
+        obj.parent.x += dist
 
 
 def input(key):
-    global throttle, rpm,player_state
+    global throttle, rpm, player_state, throttle_pedal
     if key == "escape":
         quit()
-    if str(key).lower() == "q" or held_keys["q"] == 1:
-        rpm += 100
-    if str(key).lower() == "e" or held_keys["e"] == 1:
-        rpm -= 100
-    if str(key).lower() == "w" or held_keys["w"] == 1: #and player_state == "car"
-        Move(front_wheel1, 100)
-        #rear_wheel2.rotation_z -= 10
-        #rear_wheel1.rotation_z += 10
-        #front_wheel1.rotation_z -= 10
-        #front_wheel2.rotation_z += 10
-        #car_body.x -= 10
+    if str(key).lower() == "w" or held_keys["w"] == 1:  # and player_state == "car"
+        throttle_pedal = True
+    else:
+        throttle_pedal = False
+
     if str(key).lower() == "f":
-        if player_state != "car" :
+        if player_state != "car":
             player_state = "car"
             player.parent = driver_seat
         else:
             player.parent = scene
             player_state = "scene"
-    if str(key).lower() == "a"  or held_keys["a"] == 1 :
+    if str(key).lower() == "a" or held_keys["a"] == 1:
         front_wheel1.rotation_y = 30
         front_wheel2.rotation_y = 30
-    elif str(key).lower() == "d"  or held_keys["d"] == 1 :
-        front_wheel1.rotation_y =- 30
+    elif str(key).lower() == "d" or held_keys["d"] == 1:
+        front_wheel1.rotation_y = - 30
         front_wheel2.rotation_y = - 30
     else:
         front_wheel1.rotation_y = 0
         front_wheel2.rotation_y = 0
 
 
-
 def update():
-    # engine.throttle(1.0 if d else 0.0)
-    # rear_wheel2.rotation_z -= 10
-    # rear_wheel1.rotation_z += 10
-    # front_wheel1.rotation_z -= 10
-    # front_wheel2.rotation_z += 10
+    engine.throttle(1.0 if throttle_pedal else 0.0)
+    rpm = engine._rpm - engine.idle_rpm
     if player_state == "car":
         player.x = driver_seat.x
-        player.y = driver_seat.y
+        player.y = driver_seat.y + 5
         player.z = driver_seat.z
-
+    Move(front_wheel1, rpm=rpm, mass=1000, max_rpm=engine.limiter_rpm)
+    Move(front_wheel2, rpm=rpm, mass=1000, max_rpm=engine.limiter_rpm)
 
 
 sun = DirectionalLight()
@@ -123,8 +117,8 @@ Sky()
 engine = Rotax_912_iS()
 audio_device = AudioDevice()
 stream = audio_device.play_stream(engine.gen_audio)
-thruster = Entity(model="thruster.blend", z=10)
 
 app.run()
 stream.close()
 audio_device.close()
+
